@@ -1,42 +1,44 @@
-import requests
+import logging
+import os
+from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-BOT_TOKEN = "7888207579:AAHkbsi0j1I6qAXR_oSlpN0y8eYX_Wi9jUE"
-API_KEY = "AIzaSyBupsnMpxBrDzVYH7WhAal4i3XY9M4c_6g"
+# Load environment variables from .env
+load_dotenv()
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hi! Send me any message and I'll answer using Gemini AI.")
+# Get tokens from .env
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # if you're using it
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-    params = {"key": API_KEY}
-    json_data = {
-        "contents": [
-            {"parts": [{"text": user_text}]}
-        ]
-    }
+# Define command handlers
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("Hello! I'm your Gemini AI bot!")
 
-    response = requests.post(url, params=params, json=json_data)
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("Type anything and I'll try to help!")
 
-    if response.status_code == 200:
-        try:
-            reply = response.json()['candidates'][0]['content']['parts'][0]['text']
-        except (KeyError, IndexError):
-            reply = "Sorry, I couldn't understand the response."
-    else:
-        reply = f"Error from API: {response.status_code}"
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_message = update.message.text
+    await update.message.reply_text(f"You said: {user_message}")
 
-    await update.message.reply_text(reply)
-
+# Main function to start the bot
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
+
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
     print("Bot is running...")
     application.run_polling()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
